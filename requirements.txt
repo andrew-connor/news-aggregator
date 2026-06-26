@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+feedparser
+google-cloud-firestore
+google-cloud-logging
+google-cloud-secret-manager
+jinja2
+python-multipart

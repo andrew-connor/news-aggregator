@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 48rem;
+            margin: 0 auto;
+            padding: 1rem;
+            color: #222;
+            line-height: 1.5;
+        }
+        h1 { margin: 0 0 0.15rem; font-size: 1.4rem; }
+        .article-count { margin: 0 0 1rem; font-size: 0.82rem; color: #9ca3af; }
+        .section-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #999;
+            margin: 1rem 0 0.3rem;
+        }
+        .alert {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 0.6rem 0.75rem;
+            margin-bottom: 0.4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .alert-body { flex: 1; }
+        .alert-meta { margin-top: 0.2rem; font-size: 0.8rem; color: #999; }
+        .alert-meta a { color: #6b7280; }
+        .article {
+            padding: 0.45rem 0;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        .article-body { flex: 1; min-width: 0; }
+        .article-checkbox {
+            flex-shrink: 0;
+            margin-top: 0.35rem;
+            width: 1.05rem;
+            height: 1.05rem;
+            cursor: pointer;
+        }
+        .article a {
+            color: #1a0dab;
+            text-decoration: none;
+            word-break: break-word;
+        }
+        .article a:visited { color: #551a8b; }
+        .article a:hover { text-decoration: underline; }
+        .source { font-size: 0.78rem; color: #888; margin-top: 0.1rem; }
+        .hide-btn {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 0.15rem 0.45rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #6b7280;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .hide-btn:hover { background: #f3f4f6; }
+        .hide-all-btn {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 0.25rem 0.65rem;
+            cursor: pointer;
+            font-size: 0.82rem;
+            color: #6b7280;
+        }
+        .hide-all-btn:hover { background: #f3f4f6; }
+        .word-input {
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.82rem;
+            color: #374151;
+            width: 9rem;
+            min-width: 0;
+        }
+        .word-input:focus { outline: none; border-color: #6b7280; }
+        .keep-input { width: 4.5rem; }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            padding: 0.5rem 0 0.6rem;
+            margin-bottom: 0.3rem;
+            box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.12);
+        }
+        .sticky-header h1 { margin-top: 0; }
+        .controls-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .empty { color: #aaa; padding: 2rem 0; text-align: center; }
+        footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            font-size: 0.82rem;
+            color: #9ca3af;
+        }
+        footer a { color: #6b7280; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="sticky-header">
+        <h1>News</h1>
+        <p class="article-count" id="article-count">
+            <span id="article-count-num">{{ articles|length }}</span>
+            article<span id="article-count-plural">{% if articles|length != 1 %}s{% endif %}</span>
+        </p>
+        {% if articles %}
+        <div class="controls-row">
+            <button class="hide-all-btn" onclick="hideAll()">Hide all</button>
+            <button class="hide-all-btn" onclick="hideSelected()">Hide selected<span id="hide-sel-count"></span></button>
+            <button class="hide-all-btn" onclick="undoHide()">Undo</button>
+            <input type="text" id="word-input" class="word-input" placeholder="word" autocomplete="off" onkeydown="if(event.key==='Enter')hideByWord()">
+            <button class="hide-all-btn" onclick="hideByWord()">Hide word</button>
+            <input type="number" id="keep-input" class="word-input keep-input" placeholder="#" min="1" autocomplete="off" onkeydown="if(event.key==='Enter')keepRecent()">
+            <button class="hide-all-btn" onclick="keepRecent()">Keep recent</button>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if alerts %}
+    <div class="section-label">Alerts</div>
+    {% for alert in alerts %}
+    <div class="alert" id="item-{{ alert.id }}">
+        <div class="alert-body">
+            <strong>{{ alert.source }}</strong>: {{ alert.message }}
+            <div class="alert-meta"><a href="/logs?run={{ alert.run_id }}">View logs</a></div>
+        </div>
+        <button class="hide-btn" onclick="hideItem('alert', '{{ alert.id }}')">Hide</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if articles %}
+    {% if alerts %}<div class="section-label">Articles</div>{% endif %}
+    {% for article in articles %}
+    <div class="article" id="item-{{ article.id }}">
+        <input type="checkbox" class="article-checkbox" data-id="{{ article.id }}" autocomplete="off">
+        <div class="article-body">
+            <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+            <div class="source">{{ article.source }}</div>
+        </div>
+        <button class="hide-btn" onclick="openAndHide('{{ article.id }}', '{{ article.url }}')">Open</button>
+        <button class="hide-btn" onclick="hideItem('article', '{{ article.id }}')">Hide</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if not articles and not alerts %}
+    <p class="empty">No articles yet.</p>
+    {% endif %}
+
+    <footer>
+        {% if last_run %}
+            Last updated: {{ last_run.finished_at | central }} CT
+        {% else %}
+            Never updated.
+        {% endif %}
+        {% if fetch_token %}
+        &middot; <a href="/fetch?token={{ fetch_token }}" onclick="refreshNow(event, this.href, this)">Refresh now</a>
+        {% endif %}
+        &middot; <a href="/logs">Logs</a>
+        &middot; <a href="/archive">Archive</a>
+        &middot; {% if show_hidden %}<a href="/">Hide shown items</a>{% else %}<a href="/?show=hidden">Show hidden</a>{% endif %}
+    </footer>
+
+    <script>
+        async function refreshNow(event, url, linkEl) {
+            // Allow Ctrl/Cmd+click and middle-click to behave as normal links
+            // (open the raw /fetch URL in a new tab) for power-user use.
+            if (event.ctrlKey || event.metaKey || event.button === 1) return;
+            event.preventDefault();
+            const original = linkEl.textContent;
+            linkEl.textContent = 'Refreshing...';
+            linkEl.style.pointerEvents = 'none';
+            linkEl.style.opacity = '0.6';
+            try {
+                const res = await fetch(url);
+                if (!res.ok) {
+                    alert(`Refresh failed: HTTP ${res.status}`);
+                    linkEl.textContent = original;
+                    linkEl.style.pointerEvents = '';
+                    linkEl.style.opacity = '';
+                    return;
+                }
+                location.reload();
+            } catch (err) {
+                alert(`Refresh failed: ${err.message}`);
+                linkEl.textContent = original;
+                linkEl.style.pointerEvents = '';
+                linkEl.style.opacity = '';
+            }
+        }
+
+        function openInBackground(event, url) {
+            if (event) event.preventDefault();
+            // Touch-primary devices (phones, tablets): the synthesized Ctrl/Cmd+click
+            // trick below doesn't work — modifier keys are meaningless and the click
+            // isn't treated as a real user gesture. Use window.open instead.
+            if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+                window.open(url, '_blank', 'noopener,noreferrer');
+                return;
+            }
+            // Desktop: synthesize Ctrl/Cmd+click to open in a background tab.
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            const isMac = /Mac/.test(navigator.platform);
+            const click = new MouseEvent('click', {
+                bubbles: false,
+                cancelable: true,
+                view: window,
+                ctrlKey: !isMac,
+                metaKey: isMac,
+            });
+            a.dispatchEvent(click);
+            document.body.removeChild(a);
+        }
+
+        function openAndHide(id, url) {
+            openInBackground(null, url);
+            hideItem('article', id);
+        }
+
+        function updateArticleCount() {
+            const count = document.querySelectorAll('.article').length;
+            const numEl = document.getElementById('article-count-num');
+            const pluralEl = document.getElementById('article-count-plural');
+            if (numEl) numEl.textContent = count;
+            if (pluralEl) pluralEl.textContent = count === 1 ? '' : 's';
+        }
+
+        function getSelectedIds() {
+            return Array.from(document.querySelectorAll('.article-checkbox:checked'))
+                .map(cb => cb.dataset.id);
+        }
+
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.article-checkbox:checked').length;
+            const text = count > 0 ? ` (${count})` : '';
+            const hEl = document.getElementById('hide-sel-count');
+            if (hEl) hEl.textContent = text;
+        }
+
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('article-checkbox')) {
+                updateSelectedCount();
+            }
+        });
+
+        async function hideSelected() {
+            const ids = getSelectedIds();
+            if (ids.length === 0) {
+                alert('No articles selected.');
+                return;
+            }
+            let res;
+            try {
+                res = await fetch('/hide-selected', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids }),
+                });
+            } catch (err) {
+                alert(`Hide selected failed: ${err.message}`);
+                return;
+            }
+            if (!res.ok) return reportFailure('Hide selected', res);
+            ids.forEach(id => {
+                const el = document.getElementById('item-' + id);
+                if (el) el.remove();
+            });
+            updateArticleCount();
+            updateSelectedCount();
+        }
+
+        function escapeRegExp(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        async function hideByWord() {
+            const input = document.getElementById('word-input');
+            const word = (input.value || '').trim();
+            if (!word) {
+                alert('Enter a word first.');
+                return;
+            }
+            const pattern = new RegExp(`\\b${escapeRegExp(word)}\\b`, 'i');
+            const matchingIds = [];
+            document.querySelectorAll('.article').forEach(el => {
+                const link = el.querySelector('.article-body a');
+                if (link && pattern.test(link.textContent)) {
+                    const cb = el.querySelector('.article-checkbox');
+                    if (cb && cb.dataset.id) matchingIds.push(cb.dataset.id);
+                }
+            });
+            if (matchingIds.length === 0) {
+                alert(`No visible headlines match "${word}".`);
+                return;
+            }
+            let res;
+            try {
+                res = await fetch('/hide-selected', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: matchingIds }),
+                });
+            } catch (err) {
+                alert(`Hide word failed: ${err.message}`);
+                return;
+            }
+            if (!res.ok) return reportFailure('Hide word', res);
+            matchingIds.forEach(id => {
+                const el = document.getElementById('item-' + id);
+                if (el) el.remove();
+            });
+            updateArticleCount();
+            updateSelectedCount();
+            input.value = '';
+        }
+
+        async function keepRecent() {
+            const input = document.getElementById('keep-input');
+            const raw = (input.value || '').trim();
+            const count = parseInt(raw, 10);
+            if (!raw || isNaN(count) || count < 1) {
+                alert('Enter how many recent stories to keep (1 or more).');
+                return;
+            }
+            const noun = count === 1 ? 'story' : 'stories';
+            if (!confirm(`Keep the ${count} most recent ${noun} and hide the rest?`)) return;
+            let res;
+            try {
+                res = await fetch('/keep-recent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count }),
+                });
+            } catch (err) {
+                alert(`Keep recent failed: ${err.message}`);
+                return;
+            }
+            if (!res.ok) return reportFailure('Keep recent', res);
+            const data = await res.json();
+            if (data.hidden > 0) {
+                location.reload();
+            } else {
+                alert(`Nothing to hide — ${count} or fewer stories are showing.`);
+            }
+        }
+
+        async function reportFailure(action, res) {
+            let detail = '';
+            try {
+                const body = await res.text();
+                detail = body ? `\n\n${body.slice(0, 500)}` : '';
+            } catch (_) {}
+            alert(`${action} failed: HTTP ${res.status}${detail}`);
+            console.error(`${action} failed`, res.status, res.statusText);
+        }
+
+        async function hideAll() {
+            if (!confirm('Hide all visible articles?')) return;
+            let res;
+            try {
+                res = await fetch('/hide-all', { method: 'POST' });
+            } catch (err) {
+                alert(`Hide all failed: ${err.message}`);
+                return;
+            }
+            if (!res.ok) return reportFailure('Hide all', res);
+            document.querySelectorAll('.article').forEach(el => el.remove());
+            updateArticleCount();
+        }
+
+        async function undoHide() {
+            let res;
+            try {
+                res = await fetch('/undo-hide', { method: 'POST' });
+            } catch (err) {
+                alert(`Undo failed: ${err.message}`);
+                return;
+            }
+            if (!res.ok) return reportFailure('Undo', res);
+            const data = await res.json();
+            if (data.restored > 0) {
+                location.reload();
+            } else {
+                alert('Nothing to undo.');
+            }
+        }
+
+        async function hideItem(type, id) {
+            let res;
+            try {
+                res = await fetch('/hide', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, id }),
+                });
+            } catch (err) {
+                alert(`Hide failed: ${err.message}`);
+                return;
+            }
+            if (!res.ok) return reportFailure('Hide', res);
+            const el = document.getElementById('item-' + id);
+            if (el) {
+                const wasArticle = el.classList.contains('article');
+                el.remove();
+                if (wasArticle) updateArticleCount();
+            }
+        }
+    </script>
+</body>
+</html>

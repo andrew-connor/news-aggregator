@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 72rem;
+            margin: 0 auto;
+            padding: 1rem;
+            color: #222;
+        }
+        h1 { font-size: 1.4rem; margin: 0 0 0.5rem; }
+        .back { font-size: 0.85rem; margin-bottom: 1rem; }
+        .back a { color: #6b7280; text-decoration: none; }
+        .back a:hover { text-decoration: underline; }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            align-items: center;
+        }
+        .filters input, .filters select {
+            padding: 0.3rem 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            color: #374151;
+        }
+        .filters input { width: 10rem; }
+        .filters button {
+            padding: 0.3rem 0.75rem;
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        .filters button:hover { background: #1e40af; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th {
+            text-align: left;
+            padding: 0.4rem 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            color: #6b7280;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        td { padding: 0.35rem 0.5rem; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+        .time { white-space: nowrap; color: #9ca3af; font-variant-numeric: tabular-nums; }
+        .level-ERROR, .level-CRITICAL { color: #dc2626; font-weight: 600; }
+        .level-WARNING { color: #d97706; }
+        .level-INFO { color: #6b7280; }
+        .run-id { font-family: monospace; font-size: 0.78rem; color: #6b7280; }
+        .message { word-break: break-word; }
+        .empty { color: #aaa; padding: 2rem 0; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Logs</h1>
+    <div class="back"><a href="/">← Back</a></div>
+
+    <form class="filters" method="get" action="/logs">
+        <input name="run" placeholder="run_id" value="{{ filters.run or '' }}">
+        <select name="source">
+            <option value="">All sources</option>
+            <option value="system" {% if filters.source == 'system' %}selected{% endif %}>system</option>
+            {% for s in sources %}
+            <option value="{{ s }}" {% if filters.source == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <select name="level">
+            <option value="">All levels</option>
+            <option value="info" {% if filters.level == 'info' %}selected{% endif %}>Info</option>
+            <option value="warning" {% if filters.level == 'warning' %}selected{% endif %}>Warning</option>
+            <option value="error" {% if filters.level == 'error' %}selected{% endif %}>Error</option>
+        </select>
+        <select name="since">
+            <option value="hour" {% if filters.since == 'hour' %}selected{% endif %}>Last hour</option>
+            <option value="day" {% if not filters.since or filters.since == 'day' %}selected{% endif %}>Last 24h</option>
+            <option value="week" {% if filters.since == 'week' %}selected{% endif %}>Last week</option>
+            <option value="30days" {% if filters.since == '30days' %}selected{% endif %}>Last 30 days</option>
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+    {% if entries %}
+    <table>
+        <thead>
+            <tr>
+                <th>Time (UTC)</th>
+                <th>Level</th>
+                <th>Source</th>
+                <th>Run</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for entry in entries %}
+        <tr>
+            <td class="time">{{ entry.time.strftime('%m/%d %H:%M:%S') if entry.time else '' }}</td>
+            <td class="level-{{ entry.level }}">{{ entry.level }}</td>
+            <td>{{ entry.source }}</td>
+            <td class="run-id">{{ entry.run_id }}</td>
+            <td class="message">{{ entry.message }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No log entries found.</p>
+    {% endif %}
+</body>
+</html>

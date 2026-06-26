@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive — News</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 48rem;
+            margin: 0 auto;
+            padding: 1rem;
+            color: #222;
+            line-height: 1.5;
+        }
+        h1 { margin: 0 0 1rem; font-size: 1.4rem; }
+        .article {
+            padding: 0.45rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .article a {
+            color: #1a0dab;
+            text-decoration: none;
+            word-break: break-word;
+        }
+        .article a:visited { color: #551a8b; }
+        .article a:hover { text-decoration: underline; }
+        .meta { font-size: 0.78rem; color: #888; margin-top: 0.1rem; }
+        .hidden-tag { color: #d97706; }
+        .pagination {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+        .pagination a { color: #6b7280; text-decoration: none; }
+        .pagination a:hover { text-decoration: underline; }
+        .empty { color: #aaa; padding: 2rem 0; text-align: center; }
+        footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            font-size: 0.82rem;
+            color: #9ca3af;
+        }
+        footer a { color: #6b7280; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Archive</h1>
+
+    {% if articles %}
+        {% for article in articles %}
+        <div class="article">
+            <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+            <div class="meta">
+                {{ article.source }}
+                {% if article.fetched_at %} &middot; {{ article.fetched_at | central }} CT{% endif %}
+                {% if article.hidden %} &middot; <span class="hidden-tag">hidden</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if next_before %}
+        <div class="pagination">
+            <a href="/archive?before={{ next_before }}">Older articles &rarr;</a>
+        </div>
+        {% endif %}
+    {% else %}
+        <p class="empty">No articles in archive.</p>
+    {% endif %}
+
+    <footer>
+        <a href="/">&larr; Back to main</a>
+    </footer>
+</body>
+</html>

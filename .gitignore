@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secrets and local convenience files (never commit)
+token.txt
+refresh_link.txt
+aggregator_link.txt
+
+# OS
+desktop.ini
+.DS_Store
+Thumbs.db
